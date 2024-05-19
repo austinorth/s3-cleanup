@@ -1,7 +1,7 @@
-# sure-take-home
+# s3-cleanup
 Helloooooo!
 
-Here's my submission for the take home exercise.
+Here's my submission for the exercise.
 
 I used a Python virtual environment for this on MacOS Sonoma. To set up the
 environment, run the following commands:
@@ -13,6 +13,9 @@ pip install -r requirements.txt
 ```
 
 I have not tested the script on Windows or Linux.
+
+You can use the `-h` or `--help` flag to view the command line options,
+description, and usage for the script.
 
 ## Questions
 1. Where should we run this script?
@@ -33,13 +36,14 @@ to demonstrate how one might test the main functions of the script (taking user
 input and deleting the deployment folders from S3) in the case of valid user
 input and valid AWS credentials. I've also included a GitHub Action in this repo
 that automatically runs the Ruff linter and pytest to ensure that the script is
-tested upon git push.
+tested upon git push. You can run the tests locally by simply invoking `pytest`
+after installing `pytest` in your venv.
 
 3. If we want to add an additional requirement of deleting deploys older than X
 days but we must maintain at least Y number of deploys. What additional changes
 would you need to make in the script?
 
-I would add functionality that checked the LastModified attribute of the folders
+I would add functionality that checked the `LastModified` attribute of the folders
 and if it was older than X days, the folder would be deleted, excluding the
 number of folders specified by an additional flag that allowed the user to pass
 in Y number of deploys.
