@@ -47,19 +47,32 @@ def cleanup(s3, bucket, keep_count):
     # Create a paginator to fetch objects in chunks (reduces memory usage for large buckets)
     paginator = s3.get_paginator("list_objects_v2")
     folders = []
-    for page in paginator.paginate(Bucket=bucket):
-        if "Contents" in page:
-            folders.extend(page["Contents"])
+    for page in paginator.paginate(Bucket=bucket, Delimiter="/"):
+        if "CommonPrefixes" in page:
+            folders.extend([prefix["Prefix"] for prefix in page["CommonPrefixes"]])
+
+    # Get the last modified date of the first object in each folder
+    folder_dates = {}
+    for folder in folders:
+        objects = s3.list_objects(Bucket=bucket, Prefix=folder, MaxKeys=1)["Contents"]
+        folder_dates[folder] = objects[0]["LastModified"]
 
     # Sort folders by last modified date
-    sorted_folders = sorted(folders, key=lambda x: x["LastModified"], reverse=True)
+    sorted_folders = sorted(folder_dates, key=folder_dates.get, reverse=True)
 
     # Get the keys of the folders to delete (all but the most recent X)
-    to_delete = [fold["Key"] for fold in sorted_folders[keep_count:]]
+    to_delete = sorted_folders[keep_count:]
 
-    # Delete the folders
-    for key in to_delete:
-        s3.delete_object(Bucket=bucket, Key=key)
+    # Delete the folders and their contents
+    for fold in to_delete:
+        # List all objects in the "folder"
+        objects_to_delete = s3.list_objects(Bucket=bucket, Prefix=fold)["Contents"]
+
+        # Prepare the list of objects to delete
+        delete_list = [{"Key": obj["Key"]} for obj in objects_to_delete]
+
+        # Delete the objects
+        s3.delete_objects(Bucket=bucket, Delete={"Objects": delete_list})
 
     logging.info(
         "Deleted all folders except the most recent {keep_count} folders in the bucket '{args.bucket}'."

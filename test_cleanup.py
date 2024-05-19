@@ -26,14 +26,20 @@ def test_cleanup():
     s3.create_bucket(Bucket=bucket_name)
 
     for i in range(50):
-        s3.put_object(Bucket=bucket_name, Key=f"folder{i}/file.txt", Body=b"Test")
+        s3.put_object(Bucket=bucket_name, Key=f"folder{i}/index.html", Body=b"Test")
+        s3.put_object(Bucket=bucket_name, Key=f"folder{i}/css/font.css", Body=b"Test")
+        s3.put_object(Bucket=bucket_name, Key=f"folder{i}/images/hey.png", Body=b"Test")
 
     # Run the cleanup function
     cleanup.cleanup(s3, bucket_name, 5)
 
     # Check that the correct number of folders were deleted
-    remaining_objects = s3.list_objects(Bucket=bucket_name)["Contents"]
-    assert len(remaining_objects) == 5
+    paginator = s3.get_paginator("list_objects_v2")
+    remaining_folders = []
+    for page in paginator.paginate(Bucket=bucket_name, Delimiter="/"):
+        if "CommonPrefixes" in page:
+            remaining_folders.extend(page["CommonPrefixes"])
+    assert len(remaining_folders) == 5
 
     # Delete all objects in the bucket, then delete the bucket
     s3_objects = s3.list_objects(Bucket=bucket_name).get("Contents", [])
